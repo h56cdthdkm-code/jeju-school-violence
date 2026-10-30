@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>학교폭력·소년범죄 검거 현황 보기</title>
+<meta name="description" content="제주 학교폭력 가해자 검거 현황과 인천 소년범죄 현황을 연도·유형별로 보는 도구">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ===== 기본 모양 (다크 테마) ===== */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans KR', sans-serif; color: #e8e8f0; background: #14131c; min-height: 100vh; line-height: 1.5; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 22px; }
+  .sub { color: #a9a8bd; font-size: 13px; margin: 4px 0 12px; }
+
+  /* 반투명 유리 느낌 패널 */
+  .glass {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 14px;
+  }
+  .notice { padding: 10px 14px; font-size: 13px; color: #ffe08a; margin-bottom: 12px; }
+  .panel { padding: 14px 16px; margin-bottom: 12px; }
+
+  /* 탭 */
+  .tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tab {
+    font-family: inherit; font-size: 14px; color: #d6d4ea; cursor: pointer; padding: 8px 16px;
+    background: #23222f; border: 1px solid #3a3950; border-radius: 10px;
+  }
+  .tab.on { background: #4b30c9; border-color: #a99bff; color: #fff; }
+
+  /* 조건 고르기 */
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+  .controls label { font-size: 13px; color: #b9b8cf; display: flex; align-items: center; gap: 6px; }
+  select { font-family: inherit; font-size: 14px; color: #fff; padding: 6px 10px; background: #23222f; border: 1px solid #3a3950; border-radius: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip {
+    font-family: inherit; font-size: 13px; color: #d6d4ea; cursor: pointer; padding: 4px 12px;
+    background: #23222f; border: 1px solid #3a3950; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .chip i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .chip.off { opacity: 0.4; }
+  button.act { font-family: inherit; font-size: 13px; color: #fff; cursor: pointer; padding: 6px 12px; background: #2f2d45; border: 1px solid #4a4868; border-radius: 8px; }
+  button.act:hover { background: #3d3a5c; }
+  .err { color: #ff8a8a; font-size: 13px; margin-top: 8px; min-height: 18px; }
+
+  /* 요약 카드 */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .card { padding: 12px 14px; }
+  .card small { color: #a9a8bd; font-size: 12px; display: block; }
+  .card b { font-size: 24px; color: #ffd84a; }
+  .card span { font-size: 12px; color: #b9b8cf; }
+
+  /* 그래프 */
+  h2 { font-size: 15px; margin-bottom: 8px; }
+  .chart { display: flex; align-items: flex-end; gap: 6px; height: 190px; padding-top: 10px; overflow-x: auto; }
+  .col { flex: 1 0 34px; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; cursor: pointer; }
+  .col .stack { width: 100%; display: flex; flex-direction: column-reverse; border-radius: 4px 4px 0 0; overflow: hidden; }
+  .col .stack div { width: 100%; }
+  .col span { font-size: 11px; color: #a9a8bd; margin-top: 4px; }
+  .col em { font-size: 11px; font-style: normal; color: #e8e8f0; }
+  .col:hover .stack, .col.on .stack { outline: 2px solid #ffd84a; }
+  #tip { min-height: 22px; font-size: 13px; color: #d6d4ea; margin-top: 8px; }
+
+  /* 유형 비율 막대 */
+  .share { display: grid; grid-template-columns: 110px 1fr 56px; gap: 8px; align-items: center; font-size: 13px; margin: 5px 0; }
+  .bar { background: #23222f; border-radius: 6px; height: 12px; overflow: hidden; }
+  .bar div { height: 100%; }
+  .share b { text-align: right; }
+
+  /* 표 */
+  .tw { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { padding: 7px 10px; border-bottom: 1px solid #25243a; text-align: right; white-space: nowrap; }
+  th { cursor: pointer; user-select: none; color: #d6d4ea; background: #232238; position: sticky; top: 0; }
+  th:first-child, td:first-child { text-align: left; }
+  tbody tr:hover td { background: #26253c; }
+  td.max { background: rgba(255, 216, 74, 0.18); font-weight: 700; }
+  td small { display: block; font-size: 11px; color: #8d8ca8; }
+  .up { color: #ff9a8a; } .down { color: #8be3a8; }
+  tfoot td { font-weight: 700; border-top: 2px solid #3a3950; color: #ffd84a; }
+  .badge { font-size: 10px; background: #ffd84a; color: #14131c; border-radius: 4px; padding: 1px 5px; margin-left: 6px; }
+  .arrow { color: #ffd84a; margin-left: 3px; }
+
+  .notes { font-size: 13px; color: #b9b8cf; }
+  .notes li { margin: 4px 0 4px 18px; }
+  footer { font-size: 12px; color: #8d8ca8; padding: 8px 0 24px; }
+  footer b { color: #ffd84a; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>학교폭력·소년범죄 검거 현황 보기</h1>
+  <p class="sub">경찰청 제공 공공데이터를 연도·유형별로 쉽게 보는 도구입니다. 탭을 눌러 자료를 바꿔 보세요.</p>
+
+  <div class="notice glass">⚠ 두 자료는 <b>지역(제주/인천), 대상(학교폭력 가해자/소년범죄 전체), 기간</b>이 달라 서로 숫자를 더하거나 직접 비교하면 안 됩니다. 이 도구는 자료를 <b>각각</b> 보여줍니다.</div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="panel glass">
+    <div class="controls">
+      <label>시작 연도 <select id="selFrom"></select></label>
+      <label>끝 연도 <select id="selTo"></select></label>
+      <button class="act" id="btnReset">조건 초기화</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div class="cards" id="cards"></div>
+
+  <div class="panel glass">
+    <h2 id="chartTitle">연도별 검거 수</h2>
+    <div class="chart" id="chart"></div>
+    <div id="tip">막대를 누르거나 마우스를 올리면 연도별 숫자가 나옵니다.</div>
+  </div>
+
+  <div class="panel glass">
+    <h2>유형별 비율 (선택한 기간)</h2>
+    <div id="shares"></div>
+  </div>
+
+  <div class="panel glass tw">
+    <h2>연도별 표 <span style="font-weight:400;color:#a9a8bd;font-size:12px">(열 이름을 누르면 정렬 · 작은 글씨는 전년 대비)</span></h2>
+    <table id="tbl"></table>
+  </div>
+
+  <div class="panel glass notes">
+    <h2>이 자료를 볼 때 주의할 점</h2>
+    <ul id="notes"></ul>
+  </div>
+
+  <footer>
+    학교폭력으로 힘들다면 <b>117(학교폭력 신고·상담)</b>에 도움을 요청할 수 있습니다.<br>
+    합계·비율·증감은 원본 파일에 없는 값으로, 이 화면에서 계산했습니다. 작은 숫자(*)는 해마다 크게 달라질 수 있습니다.
+  </footer>
+</div>
+
+<script>
+/* =====================================================================
+ * 1. 데이터 (CSV 파일 내용을 그대로 옮겨 담은 것)
+ *    rows: [연도, 유형1, 유형2, ...] (cats와 같은 순서)
+ * ===================================================================== */
+const DATASETS = {
+  jeju: {
+    tab: '제주 학교폭력 가해자 검거',
+    unit: '명·건 (단위 확인 필요)',
+    cats: ['폭력', '금품갈취', '성폭력', '기타'],
+    rows: [[2014,104,16,35,11],[2015,113,20,12,15],[2016,111,16,7,7],[2017,131,14,11,15],[2018,114,6,10,19],
+           [2019,140,11,41,42],[2020,73,10,32,30],[2021,100,6,37,17],[2022,137,18,46,46],[2023,116,23,56,44],
+           [2024,125,8,71,44],[2025,174,12,62,77]],
+    notes: [
+      '제주특별자치도경찰청 「학교폭력 가해자 검거 현황」 (2025-12-31 기준, 2014~2025년)입니다.',
+      '경찰이 <b>검거한</b> 가해자 통계이며, 실제 학교폭력 발생 규모와 같지 않습니다. 학교 자체 처리나 교육청 심의는 포함되지 않습니다.',
+      '「기타」에 어떤 유형이 들어가는지 파일에 설명이 없습니다.',
+      '숫자가 검거 인원인지 건수인지 파일에 적혀 있지 않습니다.',
+      '늘거나 줄어든 이유는 자료에 없으므로 이유를 단정하지 마세요.'
+    ]
+  },
+  incheon: {
+    tab: '인천 소년범죄',
+    unit: '명·건 (단위 확인 필요)',
+    cats: ['강력범', '절도범', '폭력범', '지능범', '풍속범', '기타형법범', '특별법범'],
+    rows: [[2016,205,1794,1584,703,6,206,1070],[2017,159,1446,1558,654,16,183,887],[2018,133,1193,1553,813,21,202,791]],
+    notes: [
+      '인천광역시 「소년범죄 현황」 (2018-12-31 기준, 2016~2018년 3년)입니다.',
+      '<b>학교폭력만</b>이 아니라 소년이 저지른 범죄 전체입니다. 절도범처럼 학교폭력과 관계없는 항목이 많이 포함됩니다.',
+      '자료가 3년뿐이라 "늘고 있다/줄고 있다"를 판단하기에는 부족합니다.',
+      '숫자가 인원인지 건수인지 파일에 적혀 있지 않습니다.'
+    ]
+  }
+};
+const COLORS = ['#ff6b81', '#ffa94d', '#ffd84a', '#4cd6a5', '#5aa9ff', '#a98bff', '#c9c9d8'];
+
+/* =====================================================================
+ * 2. 상태 / 계산
+ * ===================================================================== */
+const state = { ds: 'jeju', from: null, to: null, on: [], sortKey: 'year', dir: 1 };
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => n.toLocaleString('ko-KR');
+const cur = () => DATASETS[state.ds];
+
+// 한 줄(연도)에서 선택한 유형만 더한다
+const sumOf = (row) => state.on.reduce((s, i) => s + row[i + 1], 0);
+
+// 전년 대비: 이전 연도가 자료에 없으면 null (예: 제주 2014년)
+function delta(cur, prev) {
+  if (prev == null) return null;
+  const d = cur - prev;
+  return { d, pct: prev ? d / prev * 100 : null };
+}
+function deltaText(x) {
+  if (!x) return '-';
+  const sign = x.d > 0 ? '+' : '';
+  return `${sign}${fmt(x.d)}` + (x.pct === null ? '' : ` (${sign}${x.pct.toFixed(1)}%)`);
+}
+const deltaClass = (x) => !x ? '' : x.d > 0 ? 'up' : x.d < 0 ? 'down' : '';
+
+// 선택한 기간의 줄들
+function rangeRows() {
+  return cur().rows.filter(r => r[0] >= state.from && r[0] <= state.to);
+}
+
+/* =====================================================================
+ * 3. 화면 그리기
+ * ===================================================================== */
+function render() {
+  const d = cur();
+  $('err').textContent = '';
+  if (state.from > state.to) {                       // 잘못된 입력: 안내만 하고 멈춘다
+    $('err').textContent = '시작 연도를 끝 연도보다 작게 골라 주세요.';
+    ['cards', 'chart', 'shares', 'tbl'].forEach(id => $(id).innerHTML = '');
+    return;
+  }
+  if (!state.on.length) {
+    $('err').textContent = '유형을 하나 이상 선택해 주세요.';
+    ['cards', 'chart', 'shares', 'tbl'].forEach(id => $(id).innerHTML = '');
+    return;
+  }
+  const rows = rangeRows();
+  const totals = rows.map(sumOf);
+  const grand = totals.reduce((a, b) => a + b, 0);
+  const maxT = Math.max(...totals);
+  const maxYear = rows[totals.indexOf(maxT)][0];
+  const prevOf = (year, fn) => { const p = d.rows.find(r => r[0] === year - 1); return p ? fn(p) : null; };
+
+  // 요약 카드
+  const last = rows[rows.length - 1], lastDelta = delta(sumOf(last), prevOf(last[0], sumOf));
+  $('cards').innerHTML =
+    `<div class="card glass"><small>${state.from}~${state.to}년 합계</small><b>${fmt(grand)}</b><span>선택한 유형 기준</span></div>` +
+    `<div class="card glass"><small>가장 많은 해</small><b>${maxYear}년</b><span>${fmt(maxT)}</span></div>` +
+    `<div class="card glass"><small>${last[0]}년 전년 대비</small><b class="${deltaClass(lastDelta)}">${deltaText(lastDelta)}</b><span>${lastDelta ? '' : '전년 자료 없음'}</span></div>`;
+
+  // 누적 막대 그래프
+  $('chartTitle').textContent = `연도별 검거 수 (${state.on.map(i => d.cats[i]).join('·')})`;
+  $('chart').innerHTML = rows.map((r, k) => {
+    const segs = state.on.map(i => `<div style="height:${r[i + 1] / maxT * 150}px;background:${COLORS[i]}"></div>`).join('');
+    return `<div class="col" data-y="${r[0]}"><em>${fmt(totals[k])}</em><div class="stack">${segs}</div><span>${r[0]}</span></div>`;
+  }).join('');
+  $('tip').textContent = '막대를 누르거나 마우스를 올리면 연도별 숫자가 나옵니다.';
+
+  // 유형별 비율
+  $('shares').innerHTML = state.on.map(i => {
+    const v = rows.reduce((s, r) => s + r[i + 1], 0), p = grand ? v / grand * 100 : 0;
+    return `<div class="share"><span>${d.cats[i]}</span><div class="bar"><div style="width:${p}%;background:${COLORS[i]}"></div></div><b>${p.toFixed(1)}%</b></div>`;
+  }).join('');
+
+  // 표 (정렬 적용)
+  let list = rows.map((r, k) => ({ r, t: totals[k] }));
+  if (state.sortKey !== 'year') {
+    list.sort((a, b) => state.dir * ((state.sortKey === 'total' ? a.t - b.t : a.r[state.sortKey + 1] - b.r[state.sortKey + 1])));
+  } else if (state.dir < 0) list.reverse();
+  const arrow = (k) => state.sortKey === k ? `<span class="arrow">${state.dir > 0 ? '▲' : '▼'}</span>` : '';
+  const catMax = Object.fromEntries(state.on.map(i => [i, Math.max(...rows.map(r => r[i + 1]))]));
+  let h = '<thead><tr><th data-k="year">연도' + arrow('year') + '</th>' +
+    state.on.map(i => `<th data-k="${i}">${d.cats[i]}${arrow(i)}</th>`).join('') +
+    `<th data-k="total">합계${arrow('total')}</th></tr></thead><tbody>`;
+  for (const { r, t } of list) {
+    const isMaxTotal = t === maxT;
+    h += `<tr><td>${r[0]}${isMaxTotal ? '<span class="badge">최고</span>' : ''}</td>`;
+    for (const i of state.on) {
+      const v = r[i + 1], dl = delta(v, prevOf(r[0], p => p[i + 1]));
+      // 유형이 하나뿐이면 그 열의 최댓값을 강조, 여러 개면 합계의 최댓값을 강조
+      const hi = state.on.length === 1 ? v === catMax[i] : false;
+      h += `<td class="${hi ? 'max' : ''}">${fmt(v)}${v <= 10 ? '*' : ''}<small class="${deltaClass(dl)}">${deltaText(dl)}</small></td>`;
+    }
+    const dt = delta(t, prevOf(r[0], sumOf));
+    h += `<td class="${isMaxTotal && state.on.length > 1 ? 'max' : ''}">${fmt(t)}<small class="${deltaClass(dt)}">${deltaText(dt)}</small></td></tr>`;
+  }
+  h += '</tbody><tfoot><tr><td>기간 합계</td>' +
+    state.on.map(i => `<td>${fmt(rows.reduce((s, r) => s + r[i + 1], 0))}</td>`).join('') + `<td>${fmt(grand)}</td></tr></tfoot>`;
+  $('tbl').innerHTML = h;
+}
+
+function renderStatic() {
+  const d = cur();
+  $('tabs').innerHTML = Object.keys(DATASETS).map(k =>
+    `<button class="tab${state.ds === k ? ' on' : ''}" data-ds="${k}">${DATASETS[k].tab}</button>`).join('');
+  const years = d.rows.map(r => r[0]);
+  $('selFrom').innerHTML = years.map(y => `<option>${y}</option>`).join('');
+  $('selTo').innerHTML = years.map(y => `<option>${y}</option>`).join('');
+  $('selFrom').value = state.from; $('selTo').value = state.to;
+  $('chips').innerHTML = d.cats.map((c, i) =>
+    `<button class="chip${state.on.includes(i) ? '' : ' off'}" data-i="${i}"><i style="background:${COLORS[i]}"></i>${c}</button>`).join('');
+  $('notes').innerHTML = d.notes.map(n => `<li>${n}</li>`).join('');
+}
+
+function reset(ds) {
+  state.ds = ds;
+  const d = cur();
+  state.from = d.rows[0][0]; state.to = d.rows[d.rows.length - 1][0];
+  state.on = d.cats.map((c, i) => i);
+  state.sortKey = 'year'; state.dir = 1;
+  renderStatic(); render();
+}
+
+/* =====================================================================
+ * 4. 화면 조작 연결
+ * ===================================================================== */
+$('tabs').addEventListener('click', (e) => { const b = e.target.closest('.tab'); if (b) reset(b.dataset.ds); });
+$('selFrom').onchange = (e) => { state.from = Number(e.target.value); render(); };
+$('selTo').onchange = (e) => { state.to = Number(e.target.value); render(); };
+$('btnReset').onclick = () => reset(state.ds);
+$('chips').addEventListener('click', (e) => {          // 유형 켜고 끄기
+  const c = e.target.closest('.chip');
+  if (!c) return;
+  const i = Number(c.dataset.i);
+  state.on = state.on.includes(i) ? state.on.filter(x => x !== i) : [...state.on, i].sort((a, b) => a - b);
+  renderStatic(); render();
+});
+$('tbl').addEventListener('click', (e) => {            // 열 이름을 누르면 정렬 (연도를 누르면 원래 순서)
+  const th = e.target.closest('th[data-k]');
+  if (!th) return;
+  const k = th.dataset.k === 'year' || th.dataset.k === 'total' ? th.dataset.k : Number(th.dataset.k);
+  if (k === 'year' && state.sortKey === 'year') state.dir = -state.dir;
+  else if (state.sortKey === k) state.dir = -state.dir;
+  else { state.sortKey = k; state.dir = k === 'year' ? 1 : -1; }
+  render();
+});
+function showTip(e) {                                   // 막대를 누르거나 올리면 그 해의 숫자를 보여준다
+  const c = e.target.closest('.col');
+  if (!c) return;
+  const row = cur().rows.find(r => r[0] === Number(c.dataset.y));
+  $('tip').textContent = `${row[0]}년 — ` + state.on.map(i => `${cur().cats[i]} ${fmt(row[i + 1])}`).join(' · ') + ` · 합계 ${fmt(sumOf(row))}`;
+}
+$('chart').addEventListener('mouseover', showTip);
+$('chart').addEventListener('click', showTip);
+
+reset('jeju');
+</script>
+</body>
+</html>
